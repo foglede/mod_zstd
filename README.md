@@ -18,6 +18,7 @@ https://github.com/facebook/zstd/tree/dev
 ### step 4:
 Add you httpd.conf file 
 
+```xml
 LoadModule zstd_module modules/mod_zstd.so
 <Ifmodule mod_zstd.c>
 AddOutputFilterByType ZSTD_COMPRESS text/plan text/html text/css application/wasm application/x-javascript application/json application/x-font-ttf application/vnd.ms-fontobject

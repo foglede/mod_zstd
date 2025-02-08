@@ -24,6 +24,7 @@ LoadModule zstd_module modules/mod_zstd.so
 AddOutputFilterByType ZSTD_COMPRESS text/plan text/html text/css application/wasm application/x-javascript application/json application/x-font-ttf application/vnd.ms-fontobject
 AddOutputFilter ZSTD_COMPRESS js css wasm hdr cr3
 </Ifmodule>
+```
 
 Tuning parameters
     ZstdFilterNote - Set a note to report on compression ratio

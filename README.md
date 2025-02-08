@@ -22,8 +22,7 @@ Add you httpd.conf file
 LoadModule zstd_module modules/mod_zstd.so
 <Ifmodule mod_zstd.c>
 AddOutputFilterByType ZSTD_COMPRESS text/plan text/html text/css application/wasm application/x-javascript application/json application/x-font-ttf application/vnd.ms-fontobject
-AddOutputFilter ZSTD_COMPRESS js css
-SetEnvIfNoCase Request_URI .(?:gif|jpe?g|png|bmp|tif|avif|webp|ico)$ no-zstd dont-vary 
+AddOutputFilter ZSTD_COMPRESS js css wasm hdr cr3
 </Ifmodule>
 
 Tuning parameters
@@ -32,10 +31,3 @@ Tuning parameters
     ZstdWindowSize - Window size between min and max (larger windows can improve compression, but require more memory)
     ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
     
-view info config
-<Location /zstd>
- SetHandler zstd-info
-</Location>
-<Location /zstds>
- SetHandler zstd-status
-</Location>

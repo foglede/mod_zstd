@@ -14,3 +14,27 @@ https://github.com/facebook/zstd/tree/dev
 - apxs -c mod_zstd.c -lzstd
 - apxs -i mod_zstd.la
 - achieved file 【mod_zstd.so】
+
+### step 4:
+Add you httpd.conf file 
+
+LoadModule zstd_module modules/mod_zstd.so
+<Ifmodule mod_zstd.c>
+AddOutputFilterByType ZSTD_COMPRESS text/plan text/html text/css application/wasm application/x-javascript application/json application/x-font-ttf application/vnd.ms-fontobject
+AddOutputFilter ZSTD_COMPRESS js css
+SetEnvIfNoCase Request_URI .(?:gif|jpe?g|png|bmp|tif|avif|webp|ico)$ no-zstd dont-vary 
+</Ifmodule>
+
+Tuning parameters
+    ZstdFilterNote - Set a note to report on compression ratio
+    ZstdCompressionLevel - Compression level between min and max (higher level means better compression but slower)
+    ZstdWindowSize - Window size between min and max (larger windows can improve compression, but require more memory)
+    ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
+    
+view info config
+<Location /zstd>
+ SetHandler zstd-info
+</Location>
+<Location /zstds>
+ SetHandler zstd-status
+</Location>

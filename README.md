@@ -28,8 +28,8 @@ AddOutputFilter ZSTD_COMPRESS js css wasm hdr cr3
 ```
 
 Tuning parameters
- > ZstdFilterNote - Set a note to report on compression ratio
- > ZstdCompressionLevel - Compression level between min and max (higher level means better compression but slower)
- > ZstdWindowSize - Window size between min and max (larger windows can improve compression, but require more memory)
- > ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
+ - ZstdFilterNote - Set a note to report on compression ratio
+ - ZstdCompressionLevel - Compression level between min and max (higher level means better compression but slower)
+ - ZstdWindowSize - Window size between min and max (larger windows can improve compression, but require more memory)
+ - ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
     

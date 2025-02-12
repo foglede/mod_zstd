@@ -455,7 +455,7 @@ static apr_status_t compress_filter(ap_filter_t* f, apr_bucket_brigade* bb)
             const char* data;
             apr_size_t len;
 
-            rv = apr_bucket_read(e, &data, &len, APR_BLOCK_READ);
+            rv = apr_bucket_read(e, &data, &len, APR_SO_NONBLOCK);
             if (rv != APR_SUCCESS) {
                 return rv;
             }
@@ -468,45 +468,6 @@ static apr_status_t compress_filter(ap_filter_t* f, apr_bucket_brigade* bb)
     }
     return APR_SUCCESS;
 }
-
-/**
-static int zstd_status_handler(request_rec *r)
-{
-    if (strcmp(r->handler, "zstd-status")) {
-        return DECLINED;
-    }
-
-    ap_set_content_type(r, "text/html;charset=utf-8");
-    ap_rputs("<html><head><title>Zstd Module Status</title></head><body>", r);
-    ap_rputs("https://github.com/foglede/mod_zstd", r);
-
-
-    ap_rputs("</body></html>", r);
-
-    return OK;
-}
-
-static int zstd_info_handler(request_rec *r)
-{
-    if (strcmp(r->handler, "zstd-info")) {
-        return DECLINED;
-    }
-
-    ap_set_content_type(r, "text/html;charset=utf-8");
-    ap_rputs("<html><head><title>Zstd Module Info</title></head><body>", r);
-    ap_rputs("<h1>Zstd Compression Module Configuration : https://github.com/foglede/mod_zstd</h1>", r);
-
-    // 使用 ap_rprintf 来格式化输出
-    ap_rputs( "<h2>ZSTD lib ver:", r);
-    ap_rputs(ZSTD_versionString(), r);
-    ap_rputs("</h2>", r);
-
-
-    ap_rputs("</body></html>", r);
-
-    return OK;
-}
-**/
 
 /*
  *  2025年2月9日 输出到 mod_status 要直观点

@@ -5,7 +5,7 @@ https://github.com/facebook/zstd/tree/dev
 
     get comdline 【 zstd 】-v
  
-### step 1: get me! ~
+### step 1: get me! [~](https://github.com/foglede/mod_zstd/)
 
 ### step 2：  apt-get install apache2-dev   
  or Compile : https://github.com/apache/httpd

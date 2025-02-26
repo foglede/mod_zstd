@@ -212,7 +212,7 @@ static apr_status_t flush_old(zstd_ctx_t* ctx,
     ap_filter_t* f)
 {
     ZSTD_inBuffer input = { NULL, 0, 0 };
-    size_t out_size = ZSTD_compressBound(AP_IOBUFSIZE);
+    size_t out_size = ZSTD_compressBound(ZSTD_CStreamInSize());
     char* out_buffer = apr_palloc(f->r->pool, out_size);
     ZSTD_outBuffer output = { out_buffer, out_size, 0 };
 
@@ -240,7 +240,7 @@ static apr_status_t flush_old(zstd_ctx_t* ctx,
 static apr_status_t flush(zstd_ctx_t* ctx, ZSTD_EndDirective mode,  ap_filter_t* f)
 {
     ZSTD_inBuffer input = { NULL, 0, 0 };
-    size_t out_size = ZSTD_compressBound(AP_IOBUFSIZE);
+    size_t out_size = ZSTD_compressBound(ZSTD_CStreamInSize());
     char* out_buffer = apr_palloc(f->r->pool, out_size);
     ZSTD_outBuffer output = { out_buffer, out_size, 0 };
     size_t remaining;
@@ -267,7 +267,7 @@ static apr_status_t flush_o(zstd_ctx_t* ctx,
     ZSTD_EndDirective mode,
     ap_filter_t* f)
 {
-    size_t out_size = ZSTD_compressBound(AP_IOBUFSIZE);
+    size_t out_size = ZSTD_compressBound(ZSTD_CStreamInSize());
     char* out_buffer = apr_palloc(f->r->pool, out_size);
     ZSTD_outBuffer output = { out_buffer, out_size, 0 };
     size_t remaining;
@@ -511,7 +511,7 @@ static apr_status_t compress_filter(ap_filter_t* f, apr_bucket_brigade* bb)
             const char* data;
             apr_size_t len;
             //dev 0.3
-            rv = apr_bucket_read(e, &data, &len, APR_BLOCK_READ);
+            rv = apr_bucket_read(e, &data, &len, APR_SO_NONBLOCK);
             if (rv != APR_SUCCESS) {
                 return rv;
             }
@@ -530,7 +530,6 @@ static apr_status_t compress_filter(ap_filter_t* f, apr_bucket_brigade* bb)
  */
 static int zstd_status_hook(request_rec* r, int flags)
 {
-
     if (!(flags & AP_STATUS_SHORT)) {
         zstd_server_config_t* conf = ap_get_module_config(r->server->module_config, &zstd_module);
 

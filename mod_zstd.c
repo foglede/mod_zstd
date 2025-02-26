@@ -207,12 +207,12 @@ static apr_status_t process_chunk(zstd_ctx_t* ctx,
     return APR_SUCCESS;
 }
 
-static apr_status_t flush(zstd_ctx_t* ctx,
+static apr_status_t flush_old(zstd_ctx_t* ctx,
     ZSTD_EndDirective mode,
     ap_filter_t* f)
 {
     ZSTD_inBuffer input = { NULL, 0, 0 };
-    size_t out_size = ZSTD_compressBound(ZSTD_CStreamInSize());
+    size_t out_size = ZSTD_compressBound(AP_IOBUFSIZE);
     char* out_buffer = apr_palloc(f->r->pool, out_size);
     ZSTD_outBuffer output = { out_buffer, out_size, 0 };
 
@@ -233,6 +233,64 @@ static apr_status_t flush(zstd_ctx_t* ctx,
             ctx->total_out += output.pos;
         }
     } while (remaining > 0);
+
+    return APR_SUCCESS;
+}
+
+static apr_status_t flush(zstd_ctx_t* ctx, ZSTD_EndDirective mode,  ap_filter_t* f)
+{
+    ZSTD_inBuffer input = { NULL, 0, 0 };
+    size_t out_size = ZSTD_compressBound(AP_IOBUFSIZE);
+    char* out_buffer = apr_palloc(f->r->pool, out_size);
+    ZSTD_outBuffer output = { out_buffer, out_size, 0 };
+    size_t remaining;
+    if(mode == ZSTD_e_end){
+      remaining = ZSTD_endStream(ctx->cctx, &output);
+    }
+
+    if(mode == ZSTD_e_flush){
+      remaining = ZSTD_compressStream2(ctx->cctx, &output, &input, ZSTD_e_flush);
+    }
+
+    if (output.pos > 0) {
+        apr_bucket* b = apr_bucket_heap_create(out_buffer, output.pos, NULL, ctx->bb->bucket_alloc);
+        
+        APR_BRIGADE_INSERT_TAIL(ctx->bb, b);
+        ctx->total_out += output.pos;
+    }
+
+    return APR_SUCCESS;
+    
+}
+
+static apr_status_t flush_o(zstd_ctx_t* ctx,
+    ZSTD_EndDirective mode,
+    ap_filter_t* f)
+{
+    size_t out_size = ZSTD_compressBound(AP_IOBUFSIZE);
+    char* out_buffer = apr_palloc(f->r->pool, out_size);
+    ZSTD_outBuffer output = { out_buffer, out_size, 0 };
+    size_t remaining;
+
+    if (mode == ZSTD_e_end) {
+        remaining = ZSTD_endStream(ctx->cctx, &output);
+    } else {
+        remaining = ZSTD_flushStream(ctx->cctx, &output);
+    }
+
+    if (ZSTD_isError(remaining)) {
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, APLOGNO(03460)
+            "Error while flushing data: %s",
+            ZSTD_getErrorName(remaining));
+        return APR_EGENERAL;
+    }
+
+    if (output.pos > 0) {
+        apr_bucket* b = apr_bucket_heap_create(out_buffer, output.pos, NULL,
+            ctx->bb->bucket_alloc);
+        APR_BRIGADE_INSERT_TAIL(ctx->bb, b);
+        ctx->total_out += output.pos;
+    }
 
     return APR_SUCCESS;
 }
@@ -472,6 +530,7 @@ static apr_status_t compress_filter(ap_filter_t* f, apr_bucket_brigade* bb)
  */
 static int zstd_status_hook(request_rec* r, int flags)
 {
+
     if (!(flags & AP_STATUS_SHORT)) {
         zstd_server_config_t* conf = ap_get_module_config(r->server->module_config, &zstd_module);
 

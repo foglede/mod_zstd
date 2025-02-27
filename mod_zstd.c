@@ -11,10 +11,13 @@
 #include "apr_strings.h"
 #include "http_protocol.h"
 #include "http_config.h"
-#include "ap_hooks.h"        
-#include "ap_provider.h"     
+#include "ap_hooks.h"       
 #include "apr_optional.h"    
 #include "apr_optional_hooks.h"
+
+#include <apr_general.h>
+#include <apr_pools.h>
+
 #include "mod_status.h"
 
 #include <zstd.h>
@@ -163,6 +166,7 @@ static zstd_ctx_t* create_ctx(int compression_level,
     ctx->cctx = ZSTD_createCCtx();
     ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, compression_level);
     ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_windowLog, window_size);
+    //ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers,2);  
     apr_pool_cleanup_register(pool, ctx, cleanup_ctx, apr_pool_cleanup_null);
 
     ctx->bb = apr_brigade_create(pool, alloc);
@@ -546,6 +550,7 @@ static int zstd_status_hook(request_rec* r, int flags)
 
         ap_rputs("</dl>", r);
     }
+
     return OK;
 }
 

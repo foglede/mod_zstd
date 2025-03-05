@@ -27,6 +27,10 @@ AddOutputFilter ZSTD_COMPRESS js css wasm hdr cr3
 </Ifmodule>
 ```
 
+Windows binaries here : [https://github.com/nono303/mod_zstd](https://github.com/nono303/mod_zstd/releases)
+
+He made some changes for compatibility, but he did not fork the code
+
 # Tuning parameters
  - ZstdFilterNote - Set a note to report on compression ratio
  - ZstdCompressionLevel - Compression level between min>0 and max (higher level means better compression but slower),

@@ -52,3 +52,5 @@ Module.symvers
 Mkfile.old
 dkms.conf
 .libs/
+*副本.*
+*.json

@@ -156,7 +156,7 @@ static apr_status_t process_bucket(zstd_ctx_t *ctx,
     size_t remaining;
 
     ZSTD_inBuffer input = { data, len, 0 };
-    size_t out_size = ZSTD_compressBound(APR_SO_SNDBUF);
+    size_t out_size = ZSTD_compressBound(len);
     char *out_buffer = apr_palloc(f->r->pool, out_size);
     ZSTD_outBuffer output = { out_buffer, out_size, 0 };
 

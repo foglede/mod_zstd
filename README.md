@@ -27,9 +27,11 @@ AddOutputFilter ZSTD_COMPRESS js css wasm hdr cr3
 </Ifmodule>
 ```
 
-Windows binaries here : [https://github.com/nono303/mod_zstd](https://github.com/nono303/mod_zstd/releases)
+Windows binaries : [https://github.com/nono303/mod_zstd](https://github.com/nono303/mod_zstd/releases)
 
-He made some changes for compatibility, but he did not fork the code
+ @nono303 did not fork the my code, @nono303 stress His source code is cloned from [Br](https://github.com/kjdev/apache-mod-brotli) compression
+
+we still have the same inspiration 
 
 # Tuning parameters
  - ZstdFilterNote - Set a note to report on compression ratio

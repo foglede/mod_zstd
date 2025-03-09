@@ -121,11 +121,18 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
     zstd_ctx_t *ctx = apr_pcalloc(pool, sizeof(*ctx));
     ctx->cctx = ZSTD_createCCtx();
 
-    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel,
-                                  conf->compression_level);
+    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, conf->compression_level);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
-                      "[CREATE_CTX] ZSTD_c_compressionLevel(%d): %s",
+                      "[CREATE_CONFIG] ZSTD_c_compressionLevel(%d): %s",
+                      conf->compression_level,
+                      ZSTD_getErrorName(rvsp));
+    }
+
+    ZSTD_CCtxParams_setParameter(ctx->cctx, ZSTD_c_strategy, conf->strategy);
+    if (ZSTD_isError(rvsp)) {
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
+                      "[CREATE_CONFIG]  ZSTD_c_strategy(%d): %s",
                       conf->compression_level,
                       ZSTD_getErrorName(rvsp));
     }
@@ -133,7 +140,7 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers, conf->workers);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_WARNING, 0, r, APLOGNO(30303)
-                      "[CREATE_CTX] ZSTD_c_nbWorkers(%d): %s",
+                      "[CREATE_CONFIG] ZSTD_c_nbWorkers(%d): %s",
                       conf->workers,
                       ZSTD_getErrorName(rvsp));
     }

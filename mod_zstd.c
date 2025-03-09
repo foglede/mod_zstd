@@ -136,7 +136,9 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
                       conf->compression_level,
                       ZSTD_getErrorName(rvsp));
     }
-
+    /**
+     * 看到这行代码的人提示我下，我这里没从配置文件中读取，因为这个压缩术语一种'流',他这个参数要很多的参考数据才能进行设置   *
+     **/
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, 8);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
@@ -223,9 +225,9 @@ static const char *get_content_encoding(request_rec *r) {
     }
 
     if (r->content_encoding) {
-        encoding = encoding ? apr_pstrcat(r->pool, encoding, ",",
-                                          r->content_encoding, NULL)
-                            : r->content_encoding;
+        encoding = encoding ? 
+        apr_pstrcat(r->pool, encoding, ",", r->content_encoding, NULL) : 
+        r->content_encoding ;
     }
 
     return encoding;

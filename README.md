@@ -35,11 +35,11 @@ Windows binaries : [https://github.com/nono303/mod_zstd](https://github.com/nono
 we still have the same inspiration 
 
 # Tuning parameters
- - ZstdFilterNote - Set a note to report on compression ratio
  - ZstdCompressionLevel - Compression level between min>0 and max (higher level means better compression but slower),
 proposal value ZstdCompressionLevel <= 19 , Max 23
- - ZstdWindowSize - Window size between min and max (larger windows can improve compression, but require more memory)
  - ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
+ - ZstdCompressionStrategy - Set the compression strategy: 'fast' (default), 'high' 
+ - ZSTDChainLog - Set the chain log: '8' (default), '16'
 
 After some statistics and observations, I suggest AddOutputFilterByType order as follows
 

@@ -71,7 +71,7 @@ static const char *set_compression_level(cmd_parms *cmd, void *dummy,
     zstd_server_config_t *conf =
         ap_get_module_config(cmd->server->module_config, &zstd_module);
 
-    int val = atoi(arg);
+    apr_int32_t val = atoi(arg);
     if (val < ZSTD_minCLevel() || val > ZSTD_maxCLevel()) {
         return apr_psprintf(
             cmd->pool, 
@@ -85,8 +85,16 @@ static const char *set_compression_level(cmd_parms *cmd, void *dummy,
     return NULL;
 }
 
-static const char *set_etag_mode(cmd_parms *cmd, void *dummy,
-                                 const char *arg) {
+/** 设置压缩速度 **/
+static const char *set_compression_strategy(cmd_parms *cmd, void *dummy, const char *arg) {
+    
+    zstd_server_config_t *conf = ap_get_module_config(cmd->server->module_config, &zstd_module);
+
+    apr_int32_t strategy = abs(atoi(arg));
+    //我默认给的是 ZSTD_fast 是一种最劣化的压缩速度
+}
+
+static const char *set_etag_mode(cmd_parms *cmd, void *dummy,  const char *arg) {
 
     zstd_server_config_t *conf =
         ap_get_module_config(cmd->server->module_config, &zstd_module);
@@ -129,10 +137,18 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
                       ZSTD_getErrorName(rvsp));
     }
 
+    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, 8);
+    if (ZSTD_isError(rvsp)) {
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
+                      "[CREATE_CONFIG] ZSTD_c_chainLog(%d): %s",
+                      8, //conf->chainLog
+                      ZSTD_getErrorName(rvsp));
+    }
+
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_strategy, conf->strategy);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
-                      "[CREATE_CONFIG]  ZSTD_c_strategy(%d): %s",
+                      "[CREATE_CONFIG] ZSTD_c_strategy(%d): %s",
                       conf->strategy,
                       ZSTD_getErrorName(rvsp));
     }

@@ -487,6 +487,7 @@ static int zstd_status_hook(request_rec* r, int flags)
         ap_rprintf(r, "<dt>Zstd Library Version&#65306;</dt><dd>%s</dd>", ZSTD_versionString());
         ap_rprintf(r, "<dt>ZstdCompressionLevel&#65306;</dt><dd>%d</dd>", conf->compression_level);
         ap_rprintf(r, "<dt>ZstdAlterETag&#65306;</dt><dd>%d</dd>", conf->etag_mode);
+        ap_rprintf(r, "<dt>ZstdCompressionStrategy&#65306;</dt><dd>%d</dd>", conf->strategy);
 
         ap_rputs("</dl>", r);
     }

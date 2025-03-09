@@ -37,7 +37,7 @@ static void *create_server_config(apr_pool_t *p, server_rec *s) {
     zstd_server_config_t *conf = apr_pcalloc(p, sizeof(*conf));
     conf->compression_level = 17;
     conf->etag_mode = ETAG_MODE_ADDSUFFIX;
-    conf->strategy = ZSTD_fast;
+    conf->strategy = ZSTD_btopt;
     
     return conf;
 }

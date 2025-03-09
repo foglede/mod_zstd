@@ -129,7 +129,7 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
                       ZSTD_getErrorName(rvsp));
     }
 
-    ZSTD_CCtxParams_setParameter(ctx->cctx, ZSTD_c_strategy, conf->strategy);
+    rvsp = ZSTD_CCtxParams_setParameter(ctx->cctx, ZSTD_c_strategy, conf->strategy);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
                       "[CREATE_CONFIG]  ZSTD_c_strategy(%d): %s",

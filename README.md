@@ -39,7 +39,7 @@ we still have the same inspiration
 proposal value ZstdCompressionLevel <= 19 , Max 23
  - ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
  - ZstdCompressionStrategy - Set the compression strategy: 'fast' (default), 'high' 
- - ZSTDChainLog - Set the chain log: '8' (default), '16'
+ - ZSTDChainLog - Set the chain log: '8'    
 
 After some statistics and observations, I suggest AddOutputFilterByType order as follows
 

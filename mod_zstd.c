@@ -90,17 +90,16 @@ static const char *set_compression_strategy(cmd_parms *cmd, void *dummy, const c
     
     zstd_server_config_t *conf = ap_get_module_config(cmd->server->module_config, &zstd_module);
 
-    apr_int32_t strategy = abs(atoi(arg));
+    apr_int32_t strategy = atoi(arg);
     if (strategy < 1 || strategy > 9) {
-        return apr_psprintf(
-            cmd->pool, 
-            "ZstdCompressionStrategy must be between %d and %d",
-            1, 
-            9
-        );
+        //return apr_psprintf(  cmd->pool,     "ZstdCompressionStrategy must be between %d and %d",      1,        9     );
+        ap_log_rerror(APLOG_MARK, APLOG_WARNING, 0, r, APLOGNO(30301)
+                      "ZstdCompressionStrategy must be between %d and %d",
+                      1,
+                      9);
     }
     conf->strategy = strategy;
-    //我默认给的是 ZSTD_fast 是一种最劣化的压缩速度
+    return NULL;
 }
 
 static const char *set_etag_mode(cmd_parms *cmd, void *dummy,  const char *arg) {

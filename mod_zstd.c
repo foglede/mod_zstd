@@ -512,6 +512,10 @@ static const command_rec zstd_config_cmds[] = {
                   NULL, RSRC_CONF,
                   "Compression level between min and max (higher level means "
                   "better compression but slower) MAX "), //ZSTD_maxCLevel()
+    AP_INIT_TAKE1("ZstdCompressionStrategy", set_compression_strategy,
+                  NULL, RSRC_CONF,
+                  "Compression strategy between 1 and 9 (higher means "
+                  "better compression but slower)"),
     AP_INIT_TAKE1("ZstdAlterETag", set_etag_mode,
                   NULL, RSRC_CONF,
                   "Set how mod_zstd should modify ETag response headers: "

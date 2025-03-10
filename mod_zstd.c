@@ -90,13 +90,14 @@ static const char *set_compression_strategy(cmd_parms *cmd, void *dummy, const c
     
     zstd_server_config_t *conf = ap_get_module_config(cmd->server->module_config, &zstd_module);
 
-    apr_int32_t strategy = atoi(arg);
+    apr_int32_t strategy = atoi(arg);//abs
     if (strategy < 1 || strategy > 9) {
-        //return apr_psprintf(  cmd->pool,     "ZstdCompressionStrategy must be between %d and %d",      1,        9     );
-        ap_log_rerror(APLOG_MARK, APLOG_WARNING, 0, r, APLOGNO(30301)
-                      "ZstdCompressionStrategy must be between %d and %d",
-                      1,
-                      9);
+        return apr_psprintf(
+            cmd->pool, 
+            "ZstdCompressionStrategy must be between %d and %d",
+            1, 
+            9
+        );
     }
     conf->strategy = strategy;
     return NULL;

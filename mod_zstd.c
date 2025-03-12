@@ -503,14 +503,15 @@ static apr_int32_t zstd_status_hook(request_rec* r, apr_int32_t flags)
         zstd_server_config_t* conf = ap_get_module_config(r->server->module_config, &zstd_module);
 
         ap_rputs("<style>.mod_zstd{display:grid;grid-template-columns:auto 1fr;} cite{cursor:pointer}</style>", r);
-        ap_rputs("<hr>", r);
+         ap_rputs("<hr>", r);
         ap_rputs("<h1>Zstd Module <cite onclick=\"javascript:window.open(this.innerText)\"> https://github.com/foglede/mod_zstd </cite></h1>", r);
-        ap_rputs("<h2>Zstd Configuration Information</h2>",r);
+         ap_rputs("<h2>Zstd Configuration Information</h2>",r);
         ap_rputs("<dl class=\"mod_zstd\">", r);
-        ap_rprintf(r, "<dt>This mod_zstd Version&#65306;</dt><dd>%s</dd>", MOD_ZSTD_VERSION);
+         ap_rprintf(r, "<dt>This mod_zstd Version&#65306;</dt><dd>%s</dd>", MOD_ZSTD_VERSION);
         ap_rprintf(r, "<dt>Zstd Library Version&#65306;</dt><dd>%s</dd>", ZSTD_versionString());
-        ap_rprintf(r, "<dt>ZstdCompressionLevel&#65306;</dt><dd>%d</dd>", conf->compression_level);
+         ap_rprintf(r, "<dt>ZstdCompressionLevel&#65306;</dt><dd>%d</dd>", conf->compression_level);
         ap_rprintf(r, "<dt>ZstdAlterETag&#65306;</dt><dd>%d</dd>", conf->etag_mode);
+         ap_rprintf(r, "<dt>ZstdCompressionStrategy&#65306;</dt><dd>%d</dd>", conf->strategy);
         ap_rprintf(r, "<dt>ZstdWorkers&#65306;</dt><dd>%d</dd>", conf->workers);
         
         ap_rputs("</dl>", r);

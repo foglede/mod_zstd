@@ -18,6 +18,7 @@
 #include <apr_pools.h>
 #include <apr_thread_proc.h>
 #include <apr_errno.h>
+#include <apr_proc_misc.h>
 
 #include "mod_status.h"
 
@@ -38,6 +39,10 @@ static void *create_server_config(apr_pool_t *p, server_rec *s) {
     conf->compression_level = 17;
     conf->etag_mode = ETAG_MODE_ADDSUFFIX;
     conf->strategy = ZSTD_fast;
+
+    apr_int32_t num_procs = 0;
+    apr_status_t rv = apr_proc_cpu_count(&num_procs, p);
+    conf->workers = num_procs;
     
     return conf;
 }
@@ -98,7 +103,7 @@ static const char *set_etag_mode(cmd_parms *cmd, void *dummy,
     } else if (ap_cstr_casecmp(arg, "Remove") == 0) {
         conf->etag_mode = ETAG_MODE_REMOVE;
     } else {
-        return "ZstdAlterETag accepts only 'AddSuffix', 'NoChange' and 'Remove'";
+        return "ZstdAlterETag accepts only \"AddSuffix\", \"NoChange\" and \"Remove\"";
     }
 
     return NULL;
@@ -246,7 +251,7 @@ static apr_status_t zstd_post_config(
 /*
  *  2025年2月9日 输出到 mod_status 要直观点
  */
-static int zstd_status_hook(request_rec* r, int flags)
+static apr_int32_t zstd_status_hook(request_rec* r, apr_int32_t flags)
 {
     if (!(flags & AP_STATUS_SHORT)) {
         zstd_server_config_t* conf = ap_get_module_config(r->server->module_config, &zstd_module);
@@ -260,7 +265,8 @@ static int zstd_status_hook(request_rec* r, int flags)
         ap_rprintf(r, "<dt>Zstd Library Version&#65306;</dt><dd>%s</dd>", ZSTD_versionString());
         ap_rprintf(r, "<dt>ZstdCompressionLevel&#65306;</dt><dd>%d</dd>", conf->compression_level);
         ap_rprintf(r, "<dt>ZstdAlterETag&#65306;</dt><dd>%d</dd>", conf->etag_mode);
-
+        ap_rprintf(r, "<dt>ZstdWorkers&#65306;</dt><dd>%d</dd>", conf->workers);
+        
         ap_rputs("</dl>", r);
     }
 

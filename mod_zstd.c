@@ -35,9 +35,22 @@ module AP_MODULE_DECLARE_DATA zstd_module;
 static void *create_server_config(apr_pool_t *p, server_rec *s) {
 
     zstd_server_config_t *conf = apr_pcalloc(p, sizeof(*conf));
+
+#ifdef _SC_NPROCESSORS_ONLN
+    conf->workers = sysconf(_SC_NPROCESSORS_ONLN) ;
+#elif _WIN32
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    conf->workers = sysInfo.dwNumberOfProcessors;
+#endif   
+
+    if ( conf->workers < 0 ) {
+        conf->workers = 0;
+    }
+
     conf->compression_level = 17;
     conf->etag_mode = ETAG_MODE_ADDSUFFIX;
-    conf->strategy = ZSTD_btopt;
+    conf->strategy = ZSTD_greedy;
     
     return conf;
 }
@@ -91,11 +104,11 @@ static const char *set_compression_strategy(cmd_parms *cmd, void *dummy, const c
     zstd_server_config_t *conf = ap_get_module_config(cmd->server->module_config, &zstd_module);
 
     apr_int32_t strategy = atoi(arg);//abs
-    if (strategy < 1 || strategy > 9) {
+    if (strategy < ZSTD_fast || strategy > 9) {
         return apr_psprintf(
             cmd->pool, 
             "ZstdCompressionStrategy must be between %d and %d",
-            1, 
+            ZSTD_fast, 
             9
         );
     }
@@ -146,13 +159,13 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
                       ZSTD_getErrorName(rvsp));
     }
     /**
-     * 看到这行代码的人提示我下，我这里没从配置文件中读取，因为这个压缩术语一种'流',他这个参数要很多的参考数据才能进行设置   *
+     * 因为这个压缩术语一种'流',他这个参数要很多的既往数据参考数据才能进行设置   *
      **/
-    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, 8);
+    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, (conf->workers * 2));
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
                       "[CREATE_CONFIG] ZSTD_c_chainLog(%d): %s",
-                      16, //conf->chainLog
+                       (conf->workers * 2), //conf->chainLog
                       ZSTD_getErrorName(rvsp));
     }
 
@@ -372,6 +385,8 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
         }
 
         if (APR_BUCKET_IS_EOS(e)) {
+            //zstd手册写end反正都是阻塞的，我只是优化几个纳秒的速度
+            ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers, 0);
             rv = process_bucket(ctx, ZSTD_e_end, NULL, 0, f);
             if (rv != APR_SUCCESS) {
                 return rv;
@@ -482,7 +497,7 @@ static apr_status_t zstd_post_config(
 /*
  *  2025年2月9日 输出到 mod_status 要直观点
  */
-static int zstd_status_hook(request_rec* r, int flags)
+static apr_int32_t zstd_status_hook(request_rec* r, apr_int32_t flags)
 {
     if (!(flags & AP_STATUS_SHORT)) {
         zstd_server_config_t* conf = ap_get_module_config(r->server->module_config, &zstd_module);
@@ -496,8 +511,8 @@ static int zstd_status_hook(request_rec* r, int flags)
         ap_rprintf(r, "<dt>Zstd Library Version&#65306;</dt><dd>%s</dd>", ZSTD_versionString());
         ap_rprintf(r, "<dt>ZstdCompressionLevel&#65306;</dt><dd>%d</dd>", conf->compression_level);
         ap_rprintf(r, "<dt>ZstdAlterETag&#65306;</dt><dd>%d</dd>", conf->etag_mode);
-        ap_rprintf(r, "<dt>ZstdCompressionStrategy&#65306;</dt><dd>%d</dd>", conf->strategy);
-
+        ap_rprintf(r, "<dt>ZstdWorkers&#65306;</dt><dd>%d</dd>", conf->workers);
+        
         ap_rputs("</dl>", r);
     }
 

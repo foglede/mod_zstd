@@ -1,4 +1,4 @@
-#define MOD_ZSTD_VERSION "0.3"
+#define MOD_ZSTD_VERSION "0.7"
 
 typedef enum {
     ETAG_MODE_ADDSUFFIX = 0,

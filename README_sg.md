@@ -42,6 +42,6 @@ AddOutputFilter ZSTD_COMPRESS js css wasm hdr cr3
 proposal value ZstdCompressionLevel <= 19 , Max 23
  - ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
  - ZstdCompressionStrategy - Set the compression strategy: 'fast' (default), 'high' 
- - ZSTDChainLog - Set the chain log: '8'   下一个 0.5 版本在将在配置文件中生效    
+ - ZSTDChainLog - Set the chain log: '8'   下一个 0.7 版本在将在配置文件中生效    
 
  AddOutputFilterByType ZSTD_COMPRESS;BROTLI_COMPRESS;DEFLATE …………………………

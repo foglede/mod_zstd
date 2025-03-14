@@ -22,6 +22,7 @@
 #include "mod_status.h"
 
 #include <zstd.h>
+#include <zstd_errors.h>
 #include "mod_zstd.h"
 
 #ifdef _WIN32
@@ -417,13 +418,13 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
             apr_brigade_cleanup(ctx->bb);
             apr_pool_cleanup_run(r->pool, ctx, cleanup_ctx);
             ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
-                          "%s [c:%d w:%d] %s:%d %s:%d %s:%d",
+                          "%s [c:%d w:%d] %s:%ld %s:%ld %s:%ld",
                           r->the_request,
                           conf->compression_level, conf->workers,
                           conf->note_input_name, ctx->total_in,
                           conf->note_output_name, ctx->total_out,
                           conf->note_ratio_name, 
-                          (int) (ctx->total_out * 100 / ctx->total_in));
+                          (apr_int64_t) (ctx->total_out * 100 / ctx->total_in));
             return rv;
 
         } else if (APR_BUCKET_IS_FLUSH(e)) {

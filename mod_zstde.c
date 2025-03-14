@@ -18,7 +18,6 @@
 #include <apr_pools.h>
 #include <apr_thread_proc.h>
 #include <apr_errno.h>
-#include <apr_proc_misc.h>
 
 #include "mod_status.h"
 
@@ -40,10 +39,6 @@ static void *create_server_config(apr_pool_t *p, server_rec *s) {
     conf->etag_mode = ETAG_MODE_ADDSUFFIX;
     conf->strategy = ZSTD_fast;
 
-    apr_int32_t num_procs = 0;
-    apr_status_t rv = apr_proc_cpu_count(&num_procs, p);
-    conf->workers = num_procs;
-    
     return conf;
 }
 

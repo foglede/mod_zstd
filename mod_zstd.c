@@ -162,13 +162,13 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
     /**
      * 因为这个压缩术语一种'流',他这个参数要很多的既往数据参考数据才能进行设置   *
      **/
-    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, (apr_int32_t) (conf->workers * 2));
-    if (ZSTD_isError(rvsp)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30302)
-                      "[zstd_setPar] ZSTD_c_chainLog(%d): %s",
-                       (conf->workers * 2), //conf->chainLog
-                      ZSTD_getErrorName(rvsp));
-    }
+    // rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, (apr_int32_t) (conf->workers * 2));
+    // if (ZSTD_isError(rvsp)) {
+    //     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30302)
+    //                   "[zstd_setPar] ZSTD_c_chainLog(%d): %s",
+    //                    (conf->workers * 2), //conf->chainLog
+    //                   ZSTD_getErrorName(rvsp));
+    // }
 
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_strategy, conf->strategy);
     if (ZSTD_isError(rvsp)) {

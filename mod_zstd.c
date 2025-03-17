@@ -154,18 +154,18 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
 
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, conf->compression_level);
     if (ZSTD_isError(rvsp)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
-                      "[CREATE_CONFIG] ZSTD_c_compressionLevel(%d): %s",
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30308)
+                      "[zstd_setPar] ZSTD_c_compressionLevel(%d): %s",
                       conf->compression_level,
                       ZSTD_getErrorName(rvsp));
     }
     /**
      * 因为这个压缩术语一种'流',他这个参数要很多的既往数据参考数据才能进行设置   *
      **/
-    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, (conf->workers * 2));
+    rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, (apr_int32_t) (conf->workers * 2));
     if (ZSTD_isError(rvsp)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
-                      "[CREATE_CONFIG] ZSTD_c_chainLog(%d): %s",
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30302)
+                      "[zstd_setPar] ZSTD_c_chainLog(%d): %s",
                        (conf->workers * 2), //conf->chainLog
                       ZSTD_getErrorName(rvsp));
     }
@@ -173,7 +173,7 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_strategy, conf->strategy);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
-                      "[CREATE_CONFIG] ZSTD_c_strategy(%d): %s",
+                      "[zstd_setPar] ZSTD_c_strategy(%d): %s",
                       conf->strategy,
                       ZSTD_getErrorName(rvsp));
     }
@@ -181,7 +181,7 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers, conf->workers);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_WARNING, 0, r, APLOGNO(30303)
-                      "[CREATE_CONFIG] ZSTD_c_nbWorkers(%d): %s",
+                      "[zstd_setPar] ZSTD_c_nbWorkers(%d): %s",
                       conf->workers,
                       ZSTD_getErrorName(rvsp));
     }
@@ -402,7 +402,7 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
             }
             if (conf->note_ratio_name) {
                 if (ctx->total_in > 0) {
-                    int ratio = (int) (ctx->total_out * 100 / ctx->total_in);
+                    apr_int32_t ratio = (apr_int32_t) (ctx->total_out * 100 / ctx->total_in);
 
                     apr_table_setn(r->notes, conf->note_ratio_name,
                                    apr_itoa(r->pool, ratio));

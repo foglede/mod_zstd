@@ -150,7 +150,7 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
 static apr_status_t process_bucket(zstd_ctx_t *ctx,
                                   ZSTD_EndDirective mode,
                                   const void *data,
-                                  apr_size_t len,
+    apr_size_t len,
                                   ap_filter_t *f) {
 
     size_t remaining;
@@ -201,8 +201,8 @@ static const char *get_content_encoding(request_rec *r) {
 
     if (r->content_encoding) {
         encoding = encoding ? apr_pstrcat(r->pool, encoding, ",",
-                                          r->content_encoding, NULL)
-                            : r->content_encoding;
+            r->content_encoding, NULL)
+            : r->content_encoding;
     }
 
     return encoding;
@@ -218,7 +218,7 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
     if (APR_BRIGADE_EMPTY(bb)) {goto apr_success;}
 
     conf = ap_get_module_config(r->server->module_config, &zstd_module);
-
+    
     //要在这里用 shm 方式去读响应的内容有多少。 内容大于多少时候再考虑压缩，就是嗯姬的那个最小压缩阈值
     apr_success:
     return APR_SUCCESS;
@@ -261,7 +261,7 @@ static apr_int32_t zstd_status_hook(request_rec* r, apr_int32_t flags)
         ap_rprintf(r, "<dt>ZstdCompressionLevel&#65306;</dt><dd>%d</dd>", conf->compression_level);
         ap_rprintf(r, "<dt>ZstdAlterETag&#65306;</dt><dd>%d</dd>", conf->etag_mode);
         ap_rprintf(r, "<dt>ZstdWorkers&#65306;</dt><dd>%d</dd>", conf->workers);
-        
+
         ap_rputs("</dl>", r);
     }
 

@@ -159,9 +159,7 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
                       conf->compression_level,
                       ZSTD_getErrorName(rvsp));
     }
-    /**
-     * 因为这个压缩术语一种'流',他这个参数要很多的既往数据参考数据才能进行设置   *
-     **/
+    
     // rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, (apr_int32_t) (conf->workers * 2));
     // if (ZSTD_isError(rvsp)) {
     //     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30302)
@@ -388,6 +386,13 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
         if (APR_BUCKET_IS_EOS(e)) {
             //zstd手册写end反正都是阻塞的，我只是优化几个纳秒的速度
             ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers, 0);
+            if (ZSTD_isError(rvsp)) {
+                ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
+                "[zstd_setPar] EOS ZSTD_c_nbWorkers(%d): %s,error",
+                conf->strategy,
+                ZSTD_getErrorName(rvsp));
+            }
+
             rv = process_bucket(ctx, ZSTD_e_end, NULL, 0, f);
             if (rv != APR_SUCCESS) {
                 return rv;

@@ -258,7 +258,7 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
 
     request_rec *r = f->r;
     zstd_ctx_t *ctx = f->ctx;
-    apr_status_t rv; size_t rvsp;
+    apr_status_t rv; 
     zstd_server_config_t *conf;
 
     if (APR_BRIGADE_EMPTY(bb)) {goto apr_success;}
@@ -385,7 +385,7 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
 
         if (APR_BUCKET_IS_EOS(e)) {
             //zstd手册写end反正都是阻塞的，我只是优化几个纳秒的速度
-            // rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers, 0);
+            //size_t rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers, 0);
             // if (ZSTD_isError(rvsp)) {
             //     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
             //     "[zstd_setPar] EOS ZSTD_c_nbWorkers(%d): %s,error",

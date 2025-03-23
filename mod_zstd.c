@@ -330,7 +330,6 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
         apr_table_mergen(r->headers_out, "Vary", "Accept-Encoding");
         accepts = apr_table_get(r->headers_in, "Accept-Encoding");
         if (!accepts) {
-            ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "No Accept-Encoding header, skipping compression");
             ap_remove_output_filter(f);
             return ap_pass_brigade(f->next, bb);
         }

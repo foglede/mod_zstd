@@ -1,4 +1,4 @@
-#define MOD_ZSTD_VERSION "0.7"
+#define MOD_ZSTD_VERSION "0.8"
 
 typedef enum {
     ETAG_MODE_ADDSUFFIX = 0,
@@ -8,6 +8,7 @@ typedef enum {
 	
 typedef struct zstd_server_config_t {
     apr_int32_t compression_level,strategy,workers;
+    apr_off_t zstd_cpr_minsize;
     etag_mode_e etag_mode;
     const char *note_ratio_name;
     const char *note_input_name;

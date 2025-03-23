@@ -38,8 +38,8 @@ we still have the same inspiration
  - ZstdCompressionLevel - Compression level between min>0 and max (higher level means better compression but slower),
 proposal value ZstdCompressionLevel <= 19 , Max 23
  - ZstdAlterETag - Set how mod_zstd should modify ETag response headers: 'AddSuffix' (default), 'NoChange', 'Remove'
- - ZstdCompressionStrategy - Set the compression strategy: 'fast' (default), 'high' 
- - ZSTDChainLog - Set the chain log: '8'    
+ - ZstdCompressionStrategy - Set the zstd compression strategy: 'fast' (default), 'high' 
+ - ZstdMinSize - Set the zstd compression start enable byte value    
 
 After some statistics and observations, I suggest AddOutputFilterByType order as follows
 

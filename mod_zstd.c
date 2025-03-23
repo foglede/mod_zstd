@@ -52,7 +52,9 @@ static void *create_server_config(apr_pool_t *p, server_rec *s) {
     conf->compression_level = 17;
     conf->etag_mode = ETAG_MODE_ADDSUFFIX;
     conf->strategy = ZSTD_greedy;
-    
+
+    conf->zstd_cpr_minsize = 1;
+
     return conf;
 }
 
@@ -117,6 +119,24 @@ static const char *set_compression_strategy(cmd_parms *cmd, void *dummy, const c
     return NULL;
 }
 
+/** 设置zstd最小压缩大小 **/
+static const char *set_zstd_minsize(cmd_parms *cmd, void *dummy, const char *arg) {
+    
+    zstd_server_config_t *conf = ap_get_module_config(cmd->server->module_config, &zstd_module);
+
+    apr_off_t min = apr_atoi64(arg);//abs
+    if (min < 0) {
+        return apr_psprintf(
+            cmd->pool, 
+            "ZstdCompressionMinsize must be greater than %ld , the value is %ld",
+            conf->zstd_cpr_minsize, 
+            min
+        );
+    }
+    conf->zstd_cpr_minsize = min;
+    return NULL;
+}
+
 static const char *set_etag_mode(cmd_parms *cmd, void *dummy,  const char *arg) {
 
     zstd_server_config_t *conf =
@@ -152,6 +172,8 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
     zstd_ctx_t *ctx = apr_pcalloc(pool, sizeof(*ctx));
     ctx->cctx = ZSTD_createCCtx();
 
+
+
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, conf->compression_level);
     if (ZSTD_isError(rvsp)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30308)
@@ -159,14 +181,6 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
                       conf->compression_level,
                       ZSTD_getErrorName(rvsp));
     }
-    
-    // rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_chainLog, (apr_int32_t) (conf->workers * 2));
-    // if (ZSTD_isError(rvsp)) {
-    //     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30302)
-    //                   "[zstd_setPar] ZSTD_c_chainLog(%d): %s",
-    //                    (conf->workers * 2), //conf->chainLog
-    //                   ZSTD_getErrorName(rvsp));
-    // }
 
     rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_strategy, conf->strategy);
     if (ZSTD_isError(rvsp)) {
@@ -265,18 +279,36 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
 
     conf = ap_get_module_config(r->server->module_config, &zstd_module);
 
-    //要在这里用 shm 方式去读响应的内容有多少。 内容大于多少时候再考虑压缩，就是嗯姬的那个最小压缩阈值
+    // 获取响应内容长度
     if (!ctx) {
         const char *encoding;
         const char *token;
         const char *accepts;
         const char *q = NULL;
         
+        const char *cl_str = apr_table_get(r->headers_out, "Content-Length");
+        
         if (r->main || r->status == HTTP_NO_CONTENT
             || apr_table_get(r->subprocess_env, "no-zstd")
             || apr_table_get(r->headers_out, "Content-Range")) {
             ap_remove_output_filter(f);
             return ap_pass_brigade(f->next, bb);
+        }
+
+        // 检查是否有 Content-Length 响应头
+        apr_off_t content_length = 0;
+        
+        if (cl_str) {
+            // 如果有 Content-Length 头，直接使用它
+            content_length = apr_atoi64(cl_str);
+        } else {
+            // 否则，计算 bucket brigade 的总长度
+            rv = apr_brigade_length(bb, 1, &content_length);
+        }
+        
+        if (content_length > 0 && content_length < conf->zstd_cpr_minsize) {
+           ap_remove_output_filter(f);
+           return ap_pass_brigade(f->next, bb);
         }
 
         /* Let's see what our current Content-Encoding is. */
@@ -370,7 +402,7 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
             ap_remove_output_filter(f);
             return ap_pass_brigade(f->next, bb);
         }
-
+        
         ctx = create_ctx(conf,f->c->bucket_alloc, r->pool, f->r);
         f->ctx = ctx;
     }
@@ -508,7 +540,7 @@ static apr_int32_t zstd_status_hook(request_rec* r, apr_int32_t flags)
     if (!(flags & AP_STATUS_SHORT)) {
         zstd_server_config_t* conf = ap_get_module_config(r->server->module_config, &zstd_module);
 
-        ap_rputs("<style>.mod_zstd{display:grid;grid-template-columns:auto 1fr;} cite{cursor:pointer}</style>", r);
+        ap_rputs("<style>.mod_zstd{display:grid;grid-template-columns:auto 1fr;align-items:center;} cite{cursor:pointer}</style>", r);
          ap_rputs("<hr>", r);
         ap_rputs("<h1>Zstd Module <cite onclick=\"javascript:window.open(this.innerText)\"> https://github.com/foglede/mod_zstd </cite></h1>", r);
          ap_rputs("<h2>Zstd Configuration Information</h2>",r);
@@ -519,7 +551,8 @@ static apr_int32_t zstd_status_hook(request_rec* r, apr_int32_t flags)
         ap_rprintf(r, "<dt>ZstdAlterETag&#65306;</dt><dd>%d</dd>", conf->etag_mode);
          ap_rprintf(r, "<dt>ZstdCompressionStrategy&#65306;</dt><dd>%d</dd>", conf->strategy);
         ap_rprintf(r, "<dt>ZstdWorkers&#65306;</dt><dd>%d</dd>", conf->workers);
-        
+         ap_rprintf(r, "<dt>ZstdMinSize&#65306;</dt><dd>%ld bytes</dd>", conf->zstd_cpr_minsize);
+
         ap_rputs("</dl>", r);
     }
 
@@ -528,8 +561,7 @@ static apr_int32_t zstd_status_hook(request_rec* r, apr_int32_t flags)
 
 static const command_rec zstd_config_cmds[] = {
 
-    AP_INIT_TAKE12("ZstdFilterNote", set_filter_note,                  NULL, RSRC_CONF,
-                   "Set a note to report on compression ratio"),
+    AP_INIT_TAKE12("ZstdFilterNote", set_filter_note, NULL, RSRC_CONF, "Set a note to report on compression ratio"),
     AP_INIT_TAKE1("ZstdCompressionLevel", set_compression_level,
                   NULL, RSRC_CONF,
                   "Compression level between min and max (higher level means "
@@ -542,6 +574,9 @@ static const command_rec zstd_config_cmds[] = {
                   NULL, RSRC_CONF,
                   "Set how mod_zstd should modify ETag response headers: "
                   "'AddSuffix' (default), 'NoChange', 'Remove'"),
+    AP_INIT_TAKE1("ZstdMinSize", set_zstd_minsize, NULL, RSRC_CONF,
+                  "Set the zstd minimum size of content to compress byte: "
+                  "default 1 byte"),              
     {NULL}
 };
 

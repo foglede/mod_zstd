@@ -167,7 +167,7 @@ static zstd_ctx_t *create_ctx(zstd_server_config_t* conf,
                               apr_pool_t *pool,
                               request_rec* r) {
 
-    size_t rvsp;
+    apr_size_t rvsp;
 
     zstd_ctx_t *ctx = apr_pcalloc(pool, sizeof(*ctx));
     ctx->cctx = ZSTD_createCCtx();
@@ -213,10 +213,10 @@ static apr_status_t process_bucket(zstd_ctx_t *ctx,
                                   apr_size_t len,
                                   ap_filter_t *f) {
 
-    size_t remaining;
+    apr_size_t remaining;
 
     ZSTD_inBuffer input = { data, len, 0 };
-    size_t out_size = ZSTD_compressBound(len);
+    apr_size_t out_size = ZSTD_compressBound(len);
     char *out_buffer = apr_palloc(f->r->pool, out_size);
     ZSTD_outBuffer output = { out_buffer, out_size, 0 };
 
@@ -276,36 +276,40 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
     zstd_server_config_t *conf;
 
     if (APR_BRIGADE_EMPTY(bb)) {goto apr_success;}
+ 
     conf = ap_get_module_config(r->server->module_config, &zstd_module);
-   
-    const char *cl_str = apr_table_get(r->headers_out, "Content-Length");
-    apr_off_t content_length = 0;
-    if (cl_str) {
-        content_length = apr_atoi64(cl_str);
-        //apr_table_setn(r->headers_out, "x-zstd-Length0", cl_str);
-       // apr_table_setn(r->headers_out, "x-zstd-Length1", apr_off_t_toa(r->pool, conf->zstd_cpr_minsize));
-       //有些没有 content_length 就没办法
-		if (  conf->zstd_cpr_minsize < content_length) {
-			ap_remove_output_filter(f);
-			return ap_pass_brigade(f->next, bb);
-		}
+      
+    const char *colstr = apr_table_get(r->headers_out, "Content-Length");
+    apr_off_t contentlength = 0;
+    if (colstr) {
+        contentlength = apr_atoi64(colstr);
+        // apr_table_setn(r->headers_out, "x-zstd-Length1", apr_off_t_toa(r->pool, conf->zstd_cpr_minsize));
+        //有些没有 content_length 就没办法
+        
+        if (contentlength < conf->zstd_cpr_minsize) { breakbb:
+            ap_remove_output_filter(f);
+            return ap_pass_brigade(f->next, bb);
+        }
     }
-		
-    
-    // 获取响应内容长度
+    //else{
+   //     rv = apr_brigade_length(bb, 1, &contentlength);
+    //    if(rv == APR_SUCCESS){
+    //        goto breakbb;
+    //    }
+   // }
+
     if (!ctx) {
         const char *encoding;
         const char *token;
         const char *accepts;
-        const char *q = NULL;      
-                
+        const char *q = NULL;
+        
         if (r->main || r->status == HTTP_NO_CONTENT
             || apr_table_get(r->subprocess_env, "no-zstd")
             || apr_table_get(r->headers_out, "Content-Range")) {
-            ap_remove_output_filter(f);
-            return ap_pass_brigade(f->next, bb);
+            goto breakbb;
         }
-            
+
         /* Let's see what our current Content-Encoding is. */
         encoding = get_content_encoding(r);
         if (encoding) {
@@ -316,9 +320,7 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
                     strcmp(token, "7bit") != 0 &&
                     strcmp(token, "8bit") != 0 &&
                     strcmp(token, "binary") != 0) {
-                    /* The data is already encoded, do nothing. */
-                    ap_remove_output_filter(f);
-                    return ap_pass_brigade(f->next, bb);
+                   goto breakbb;
                 }
                 if (*tmp) {
                     ++tmp;
@@ -330,37 +332,19 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
         apr_table_mergen(r->headers_out, "Vary", "Accept-Encoding");
         accepts = apr_table_get(r->headers_in, "Accept-Encoding");
         if (!accepts) {
-            ap_remove_output_filter(f);
-            return ap_pass_brigade(f->next, bb);
+            goto breakbb;
         }
 
-        // 更精确地检查 zstd 编码支持
-        int zstd_supported = 0;
-        const char *accept_val = accepts;
-        token = ap_get_token(r->pool, &accept_val, 0);
-        while (token && token[0]) {
-            // 检查是否有 zstd 或 *
-            if (ap_cstr_casecmp(token, "zstd") == 0 || ap_cstr_casecmp(token, "*") == 0) {
-                zstd_supported = 1;
-                break;
+        token = ap_get_token(r->pool, &accepts, 0);
+        while (token && token[0] && ap_cstr_casecmp(token, "zstd") != 0) {
+            while (*accepts == ';') {
+                ++accepts;
+                ap_get_token(r->pool, &accepts, 1);
             }
-            
-            // 跳过q值等参数
-            while (*accept_val && *accept_val != ',') {
-                accept_val++;
+            if (*accepts == ',') {
+                ++accepts;
             }
-            
-            if (*accept_val == ',') {
-                accept_val++;
-            }
-            
-            token = ap_get_token(r->pool, &accept_val, 0);
-        }
-
-        if (!zstd_supported) {
-            ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "zstd not in Accept-Encoding, skipping compression");
-            ap_remove_output_filter(f);
-            return ap_pass_brigade(f->next, bb);
+            token = (*accepts) ? ap_get_token(r->pool, &accepts, 0) : NULL;
         }
 
         /* Find the qvalue, if provided */
@@ -372,13 +356,11 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
             ap_log_rerror(APLOG_MARK, APLOG_TRACE1, 0, r,
                           "token: '%s' - q: '%s'", token ? token : "NULL", q);
         }
-     
 
         /* No acceptable token found or q=0 */
         if (!token || token[0] == '\0' ||
             (q && strlen(q) >= 3 && strncmp("q=0.000", q, strlen(q)) == 0)) {
-            ap_remove_output_filter(f);
-            return ap_pass_brigade(f->next, bb);
+            goto breakbb;
         }
 
         /* If the entire Content-Encoding is "identity", we can replace it. */
@@ -393,8 +375,6 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
         }
         apr_table_unset(r->headers_out, "Content-Length");
         apr_table_unset(r->headers_out, "Content-MD5");
-
-        
 
         if (conf->etag_mode == ETAG_MODE_REMOVE) {
             apr_table_unset(r->headers_out, "ETag");
@@ -413,10 +393,9 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
 
         /* For 304 responses, we only need to send out the headers. */
         if (r->status == HTTP_NOT_MODIFIED) {
-            ap_remove_output_filter(f);
-            return ap_pass_brigade(f->next, bb);
+            goto breakbb;
         }
-        
+
         ctx = create_ctx(conf,f->c->bucket_alloc, r->pool, f->r);
         f->ctx = ctx;
     }
@@ -431,13 +410,6 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
 
         if (APR_BUCKET_IS_EOS(e)) {
             //zstd手册写end反正都是阻塞的，我只是优化几个纳秒的速度
-            //size_t rvsp = ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_nbWorkers, 0);
-            // if (ZSTD_isError(rvsp)) {
-            //     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(30301)
-            //     "[zstd_setPar] EOS ZSTD_c_nbWorkers(%d): %s,error",
-            //     conf->strategy,
-            //     ZSTD_getErrorName(rvsp));
-            // }
 
             rv = process_bucket(ctx, ZSTD_e_end, NULL, 0, f);
             if (rv != APR_SUCCESS) {
@@ -453,7 +425,7 @@ static apr_status_t compress_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
             }
             if (conf->note_ratio_name) {
                 if (ctx->total_in > 0) {
-                    apr_off_t ratio = (apr_off_t) (ctx->total_out * 100 / ctx->total_in);
+                    apr_int32_t ratio = (apr_int32_t) (ctx->total_out * 100 / ctx->total_in);
 
                     apr_table_setn(r->notes, conf->note_ratio_name,
                                    apr_itoa(r->pool, ratio));
